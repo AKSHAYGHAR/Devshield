@@ -1,0 +1,1958 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevShield — Device Security Audit</title>
+  <link rel="icon" type="image/jpeg" href="favicon.jpg">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap"
+    rel="stylesheet">
+  <style>
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #07090f;
+      --surface: #0d1117;
+      --card: #111820;
+      --border: #1c2a38;
+      --border2: #243444;
+      --cyan: #22d3ee;
+      --cyan-dim: rgba(34, 211, 238, 0.12);
+      --green: #34d399;
+      --amber: #fbbf24;
+      --red: #f87171;
+      --text: #e2eaf0;
+      --muted: #4a6070;
+      --muted2: #8aa0b0;
+      --glow: rgba(34, 211, 238, 0.15);
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      cursor: default;
+    }
+
+    /* Animated background */
+    .bg-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .bg-canvas::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 0%, rgba(34, 211, 238, 0.06) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 100%, rgba(52, 211, 153, 0.04) 0%, transparent 60%);
+    }
+
+    .grid-lines {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(34, 211, 238, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(34, 211, 238, 0.025) 1px, transparent 1px);
+      background-size: 60px 60px;
+      mask-image: radial-gradient(ellipse 100% 100% at 50% 50%, black 30%, transparent 80%);
+    }
+
+    .scan-line {
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent 0%, var(--cyan) 50%, transparent 100%);
+      opacity: 0;
+      animation: scanPulse 8s ease-in-out infinite;
+    }
+
+    @keyframes scanPulse {
+      0% {
+        top: -5%;
+        opacity: 0;
+      }
+
+      10% {
+        opacity: 0.3;
+      }
+
+      90% {
+        opacity: 0.3;
+      }
+
+      100% {
+        top: 105%;
+        opacity: 0;
+      }
+    }
+
+    /* Layout */
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 60px 24px 80px;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 70px;
+      opacity: 0;
+      animation: fadeUp 0.8s ease 0.1s forwards;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .brand-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 4px;
+      color: var(--cyan);
+      text-transform: uppercase;
+      opacity: 0.7;
+    }
+
+    .brand-name {
+      font-size: 38px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .brand-name span {
+      color: var(--cyan);
+    }
+
+    .header-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+      padding-top: 4px;
+    }
+
+    .version-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      border: 1px solid var(--border2);
+      padding: 4px 10px;
+      text-transform: uppercase;
+    }
+
+    .status-dot {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted2);
+      letter-spacing: 1px;
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: blink 2s ease infinite;
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: 0.3
+      }
+    }
+
+    /* Hero section */
+    .hero {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 40px;
+      align-items: center;
+      margin-bottom: 60px;
+      opacity: 0;
+      animation: fadeUp 0.8s ease 0.2s forwards;
+    }
+
+    .hero-text h2 {
+      font-size: 52px;
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1.05;
+      color: var(--text);
+      margin-bottom: 16px;
+    }
+
+    .hero-text h2 em {
+      font-style: normal;
+      background: linear-gradient(90deg, var(--cyan), var(--green));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-text p {
+      font-size: 15px;
+      color: var(--muted2);
+      line-height: 1.7;
+      max-width: 420px;
+      font-weight: 400;
+    }
+
+    /* Score gauge */
+    .gauge-wrap {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .gauge-ring {
+      transform: rotate(-90deg);
+    }
+
+    .gauge-bg {
+      fill: none;
+      stroke: var(--border);
+      stroke-width: 6;
+    }
+
+    .gauge-fill {
+      fill: none;
+      stroke: var(--green);
+      stroke-width: 6;
+      stroke-linecap: round;
+      stroke-dasharray: 408;
+      stroke-dashoffset: 408;
+      transition: stroke-dashoffset 2s cubic-bezier(0.22, 1, 0.36, 1), stroke 0.6s ease;
+      filter: drop-shadow(0 0 8px currentColor);
+    }
+
+    .gauge-inner {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .gauge-val {
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: -2px;
+      color: var(--green);
+      line-height: 1;
+      transition: color 0.6s;
+    }
+
+    .gauge-sub {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-top: 4px;
+    }
+
+    .gauge-grade {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      margin-top: 2px;
+      color: var(--muted2);
+    }
+
+    /* Scan button */
+    .scan-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 50px;
+      opacity: 0;
+      animation: fadeUp 0.8s ease 0.3s forwards;
+    }
+
+    .btn-scan {
+      position: relative;
+      overflow: hidden;
+      padding: 0;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-family: 'Syne', sans-serif;
+    }
+
+    .btn-inner {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 48px;
+      background: linear-gradient(135deg, rgba(34, 211, 238, 0.1), rgba(52, 211, 153, 0.08));
+      border: 1px solid var(--cyan);
+      color: var(--cyan);
+      font-family: 'Syne', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      transition: all 0.3s;
+      clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+    }
+
+    .btn-scan:hover .btn-inner {
+      background: linear-gradient(135deg, rgba(34, 211, 238, 0.25), rgba(52, 211, 153, 0.18));
+      box-shadow: 0 0 30px rgba(34, 211, 238, 0.2), inset 0 0 20px rgba(34, 211, 238, 0.05);
+      color: #fff;
+    }
+
+    .btn-scan:disabled .btn-inner {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .btn-icon {
+      font-size: 16px;
+    }
+
+    .progress-bar {
+      width: 300px;
+      height: 1px;
+      background: var(--border);
+      position: relative;
+      overflow: hidden;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .progress-bar.active {
+      opacity: 1;
+    }
+
+    .progress-bar::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      animation: progMove 1.5s ease-in-out infinite;
+    }
+
+    @keyframes progMove {
+      from {
+        transform: translateX(-100%)
+      }
+
+      to {
+        transform: translateX(200%)
+      }
+    }
+
+    .scan-status {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 2px;
+      height: 16px;
+    }
+
+    /* Checks */
+    .section-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 4px;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      opacity: 0;
+      animation: fadeUp 0.8s ease 0.4s forwards;
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .checks-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      margin-bottom: 50px;
+      opacity: 0;
+      animation: fadeUp 0.8s ease 0.5s forwards;
+    }
+
+    .check-row {
+      display: grid;
+      grid-template-columns: 44px 1fr auto auto;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 20px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--border);
+      opacity: 0.35;
+      transition: opacity 0.4s, border-left-color 0.4s, background 0.4s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .check-row::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, var(--cyan-dim), transparent);
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+
+    .check-row.active {
+      opacity: 1;
+    }
+
+    .check-row.active::before {
+      opacity: 0.4;
+    }
+
+    .check-row.pass {
+      border-left-color: var(--green);
+    }
+
+    .check-row.warn {
+      border-left-color: var(--amber);
+    }
+
+    .check-row.fail {
+      border-left-color: var(--red);
+    }
+
+    .check-row.info {
+      border-left-color: var(--cyan);
+    }
+
+    .check-row.pass::before {
+      background: linear-gradient(90deg, rgba(52, 211, 153, 0.08), transparent);
+      opacity: 1;
+    }
+
+    .check-row.warn::before {
+      background: linear-gradient(90deg, rgba(251, 191, 36, 0.08), transparent);
+      opacity: 1;
+    }
+
+    .check-row.fail::before {
+      background: linear-gradient(90deg, rgba(248, 113, 113, 0.08), transparent);
+      opacity: 1;
+    }
+
+    .check-row.info::before {
+      background: linear-gradient(90deg, rgba(34, 211, 238, 0.06), transparent);
+      opacity: 1;
+    }
+
+    .check-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .check-main {
+      position: relative;
+      z-index: 1;
+    }
+
+    .check-name {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+
+    .check-desc {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      line-height: 1.5;
+      transition: color 0.4s;
+    }
+
+    .check-row.pass .check-desc {
+      color: rgba(52, 211, 153, 0.7);
+    }
+
+    .check-row.warn .check-desc {
+      color: rgba(251, 191, 36, 0.7);
+    }
+
+    .check-row.fail .check-desc {
+      color: rgba(248, 113, 113, 0.7);
+    }
+
+    .check-row.info .check-desc {
+      color: rgba(34, 211, 238, 0.6);
+    }
+
+    .check-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      padding: 4px 10px;
+      border: 1px solid;
+      text-transform: uppercase;
+      position: relative;
+      z-index: 1;
+      color: var(--muted);
+      border-color: var(--border);
+      transition: color 0.4s, border-color 0.4s;
+    }
+
+    .check-row.pass .check-badge {
+      color: var(--green);
+      border-color: rgba(52, 211, 153, 0.3);
+    }
+
+    .check-row.warn .check-badge {
+      color: var(--amber);
+      border-color: rgba(251, 191, 36, 0.3);
+    }
+
+    .check-row.fail .check-badge {
+      color: var(--red);
+      border-color: rgba(248, 113, 113, 0.3);
+    }
+
+    .check-row.info .check-badge {
+      color: var(--cyan);
+      border-color: rgba(34, 211, 238, 0.3);
+    }
+
+    .check-icon-right {
+      font-size: 18px;
+      position: relative;
+      z-index: 1;
+      width: 24px;
+      text-align: center;
+    }
+
+    /* Scanning pulse */
+    @keyframes rowPulse {
+
+      0%,
+      100% {
+        opacity: 0.35
+      }
+
+      50% {
+        opacity: 0.65
+      }
+    }
+
+    .check-row.scanning {
+      animation: rowPulse 0.7s ease-in-out infinite;
+    }
+
+    /* Recommendations */
+    .recs-panel {
+      display: none;
+      background: var(--card);
+      border: 1px solid var(--border);
+      padding: 32px;
+      margin-bottom: 40px;
+      animation: fadeUp 0.5s ease forwards;
+    }
+
+    .recs-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .recs-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 4px;
+      color: var(--cyan);
+      text-transform: uppercase;
+    }
+
+    .recs-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 1px;
+    }
+
+    .rec-item {
+      display: flex;
+      gap: 16px;
+      padding: 14px 0;
+      border-bottom: 1px solid rgba(28, 42, 56, 0.6);
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--muted2);
+    }
+
+    .rec-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .rec-num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--cyan);
+      flex-shrink: 0;
+      margin-top: 3px;
+      opacity: 0.7;
+    }
+
+    /* Footer */
+    footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+      opacity: 0;
+      animation: fadeUp 0.8s ease 0.7s forwards;
+    }
+
+    .footer-left {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .footer-right {
+      display: flex;
+      gap: 20px;
+    }
+
+    .footer-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 2px;
+      color: var(--muted);
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border: 1px solid var(--border);
+      opacity: 0.6;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* INTRO SPLASH */
+    #intro-splash {
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      background: #07090f;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      transition: opacity 0.8s ease, transform 0.8s ease;
+    }
+
+    #intro-splash.hide {
+      opacity: 0;
+      transform: scale(1.05);
+      pointer-events: none;
+    }
+
+    .intro-tag {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      letter-spacing: 6px;
+      color: var(--muted);
+      text-transform: uppercase;
+      opacity: 0;
+      animation: fadeUp 0.5s ease 0.4s forwards;
+    }
+
+    .intro-name {
+      font-size: clamp(48px, 9vw, 88px);
+      font-weight: 800;
+      letter-spacing: -3px;
+      line-height: 1;
+      font-family: "Syne", sans-serif;
+      min-height: clamp(56px, 10vw, 96px);
+    }
+
+    .intro-name .typed-dev {
+      color: var(--text);
+    }
+
+    .intro-name .typed-shield {
+      color: var(--cyan);
+    }
+
+    .intro-cursor-char {
+      display: inline-block;
+      width: clamp(3px, 0.5vw, 5px);
+      height: 0.85em;
+      background: var(--cyan);
+      margin-left: 3px;
+      vertical-align: middle;
+      border-radius: 1px;
+      box-shadow: 0 0 14px var(--cyan);
+      animation: curBlink 0.55s step-end infinite;
+    }
+
+    @keyframes curBlink {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: 0
+      }
+    }
+
+    .intro-sub {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      letter-spacing: 4px;
+      color: var(--muted2);
+      text-transform: uppercase;
+      opacity: 0;
+      transition: opacity 0.4s;
+    }
+
+    .intro-sub.show {
+      opacity: 1;
+    }
+
+    .intro-loader {
+      width: min(300px, 75vw);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .intro-loader.show {
+      opacity: 1;
+    }
+
+    .intro-track {
+      width: 100%;
+      height: 1px;
+      background: var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .intro-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--cyan), var(--green));
+      box-shadow: 0 0 8px var(--cyan);
+      transition: width 0.05s linear;
+    }
+
+    .intro-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .intro-status {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 2px;
+    }
+
+    .intro-pct {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 10px;
+      color: var(--cyan);
+      letter-spacing: 2px;
+    }
+
+    /* ── TERMINAL OVERLAY ── */
+    .terminal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      background: rgba(7, 9, 15, 0.96);
+      backdrop-filter: blur(8px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s;
+    }
+
+    .terminal-overlay.show {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .terminal-box {
+      width: min(660px, 92vw);
+      background: var(--card);
+      border: 1px solid var(--border2);
+      box-shadow: 0 0 60px rgba(34, 211, 238, 0.08), 0 0 120px rgba(34, 211, 238, 0.04);
+    }
+
+    .terminal-titlebar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .t-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .t-dot.r {
+      background: #f87171;
+    }
+
+    .t-dot.y {
+      background: #fbbf24;
+    }
+
+    .t-dot.g {
+      background: #34d399;
+    }
+
+    .terminal-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      letter-spacing: 2px;
+      margin-left: 6px;
+    }
+
+    .terminal-body {
+      padding: 24px 24px 20px;
+      min-height: 280px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 2;
+      color: var(--muted2);
+      overflow: hidden;
+    }
+
+    .t-line {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      opacity: 0;
+      animation: tLineIn 0.2s ease forwards;
+    }
+
+    @keyframes tLineIn {
+      from {
+        opacity: 0;
+        transform: translateX(-6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .t-prompt {
+      color: var(--cyan);
+      flex-shrink: 0;
+    }
+
+    .t-ok {
+      color: var(--green);
+      flex-shrink: 0;
+    }
+
+    .t-warn {
+      color: var(--amber);
+      flex-shrink: 0;
+    }
+
+    .t-fail {
+      color: var(--red);
+      flex-shrink: 0;
+    }
+
+    .t-dim {
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .t-text {
+      color: var(--text);
+    }
+
+    .t-muted {
+      color: var(--muted2);
+    }
+
+    .t-cursor {
+      display: inline-block;
+      width: 8px;
+      height: 14px;
+      background: var(--cyan);
+      vertical-align: middle;
+      margin-left: 2px;
+      animation: cursorBlink 0.7s step-end infinite;
+    }
+
+    @keyframes cursorBlink {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: 0
+      }
+    }
+
+    /* progress ring inside terminal */
+    .t-progress-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px 16px;
+      border-top: 1px solid var(--border);
+    }
+
+    .t-progress-track {
+      flex: 1;
+      height: 2px;
+      background: var(--border);
+      position: relative;
+      overflow: hidden;
+      margin-right: 16px;
+    }
+
+    .t-progress-fill {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      background: linear-gradient(90deg, var(--cyan), var(--green));
+      width: 0%;
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 0 8px var(--cyan);
+    }
+
+    .t-progress-pct {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--cyan);
+      letter-spacing: 2px;
+      min-width: 36px;
+      text-align: right;
+    }
+
+    @media (max-width: 680px) {
+      .hero {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-text h2 {
+        font-size: 36px;
+      }
+
+      .gauge-wrap {
+        display: none;
+      }
+
+      .header {
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .header-meta {
+        align-items: flex-start;
+      }
+
+      .check-row {
+        grid-template-columns: 32px 1fr auto;
+      }
+
+      .check-icon-right {
+        display: none;
+      }
+
+      footer {
+        flex-direction: column;
+        gap: 12px;
+      }
+    }
+
+    /* --- CUTE VIRUS MOUSE --- */
+    .cyber-pet {
+      position: fixed;
+      width: 32px;
+      height: 32px;
+      pointer-events: none;
+      z-index: 9999;
+      top: 0;
+      left: 0;
+      transform: translate(-50%, -50%);
+      transition: transform 0.1s ease-out;
+      will-change: transform;
+      filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.6));
+    }
+
+    .cyber-pet svg {
+      width: 100%;
+      height: 100%;
+      fill: none;
+      stroke: var(--cyan);
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      animation: petFloat 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes petFloat {
+      0% {
+        transform: translateY(-3px) scale(1);
+      }
+
+      100% {
+        transform: translateY(3px) scale(1.05);
+        stroke: var(--green);
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- INTRO SPLASH -->
+  <div id="intro-splash">
+    <div class="intro-tag">Initializing Security Suite</div>
+    <div class="intro-name">
+      <span class="typed-dev"></span><span class="typed-shield"></span><span class="intro-cursor-char"
+        id="introCursor"></span>
+    </div>
+    <div class="intro-sub" id="introSub">Device Security Audit Tool</div>
+    <div class="intro-loader" id="introLoader">
+      <div class="intro-track">
+        <div class="intro-fill" id="introFill"></div>
+      </div>
+      <div class="intro-row">
+        <span class="intro-status" id="introStatus">Loading modules...</span>
+        <span class="intro-pct" id="introPct">0%</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="bg-canvas">
+    <div class="grid-lines"></div>
+    <div class="scan-line"></div>
+  </div>
+
+  <div class="wrap">
+
+    <!-- HEADER -->
+    <header class="header">
+      <div class="brand">
+        <span class="brand-tag">Security Audit Tool</span>
+        <h1 class="brand-name">Dev<span>Shield</span></h1>
+      </div>
+      <div class="header-meta">
+        <div class="version-badge">v4.0 — 2026</div>
+        <div class="status-dot">
+          <div class="dot"></div> System Ready
+        </div>
+      </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-text">
+        <h2>Know Your Device<br><em>Security Score</em></h2>
+        <p>A 10-point automated audit that detects security weaknesses in your browser and device. Everything runs
+          locally — no data ever leaves your machine.</p>
+      </div>
+      <div class="gauge-wrap">
+        <svg width="160" height="160" class="gauge-ring" viewBox="0 0 160 160">
+          <circle class="gauge-bg" cx="80" cy="80" r="65" />
+          <circle class="gauge-fill" id="gaugeFill" cx="80" cy="80" r="65" />
+        </svg>
+        <div class="gauge-inner">
+          <div class="gauge-val" id="gaugeVal">—</div>
+          <div class="gauge-sub">Score</div>
+          <div class="gauge-grade" id="gaugeGrade">NOT RUN</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SCAN CONTROLS -->
+    <div class="scan-area">
+      <button class="btn-scan" id="btnScan" onclick="startScan()">
+        <div class="btn-inner">
+          <span class="btn-icon">⬡</span>
+          <span id="btnLabel">Run Security Audit</span>
+        </div>
+      </button>
+      <div class="progress-bar" id="progressBar"></div>
+      <div class="scan-status" id="scanStatus"></div>
+    </div>
+
+    <!-- CHECKS -->
+    <div class="section-label">Audit Checks</div>
+
+    <div class="checks-list" id="checksList">
+
+      <div class="check-row" id="r-https">
+        <div class="check-num">01</div>
+        <div class="check-main">
+          <div class="check-name">HTTPS Encryption</div>
+          <div class="check-desc" id="d-https">Awaiting scan...</div>
+        </div>
+        <div class="check-badge" id="b-https">—</div>
+        <div class="check-icon-right" id="i-https">🔒</div>
+      </div>
+
+      <div class="check-row" id="r-browser">
+        <div class="check-num">02</div>
+        <div class="check-main">
+          <div class="check-name">Browser Identity</div>
+          <div class="check-desc" id="d-browser">Awaiting scan...</div>
+        </div>
+        <div class="check-badge" id="b-browser">—</div>
+        <div class="check-icon-right" id="i-browser">🌐</div>
+      </div>
+
+      <div class="check-row" id="r-cookies">
+        <div class="check-num">03</div>
+        <div class="check-main">
+          <div class="check-name">Cookie Policy</div>
+          <div class="check-desc" id="d-cookies">Awaiting scan...</div>
+        </div>
+        <div class="check-badge" id="b-cookies">—</div>
+        <div class="check-icon-right" id="i-cookies">🍪</div>
+      </div>
+
+      <div class="check-row" id="r-dnt">
+        <div class="check-num">04</div>
+        <div class="check-main">
+          <div class="check-name">Tracking Protection</div>
+          <div class="check-desc" id="d-dnt">Awaiting scan...</div>
+        </div>
+        <div class="check-badge" id="b-dnt">—</div>
+        <div class="check-icon-right" id="i-dnt">👁</div>
+      </div>
+
+      <div class="check-row" id="r-storage">
+        <div class="check-num">05</div>
+        <div class="check-main">
+          <div class="check-name">Local Storage Audit</div>
+          <div class="check-desc" id="d-storage">Awaiting scan...</div>
+        </div>
+        <div class="check-badge" id="b-storage">—</div>
+        <div class="check-icon-right" id="i-storage">💾</div>
+      </div>
+
+      <div class="check-row" id="r-webrtc">
+        <div class="check-num">06</div>
+        <div class="check-main">
+          <div class="check-name">WebRTC IP Leak</div>
+          <div class="check-desc" id="d-webrtc">Awaiting scan...</div>
+        </div>
+        <div class="check-badge" id="b-webrtc">—</div>
+        <div class="check-icon-right" id="i-webrtc">📡</div>
+      </div>
+
+      <div class="check-row" id="r-platform">
+        <div class="check-num">07</div>
+        <div class="check-main">
+          <div class="check-name">Platform Detection</div>
+          <div class="check-desc" id="d-platform">Awaiting scan...</div>
+        </div>
+        <div class="check-badge" id="b-platform">—</div>
+        <div class="check-icon-right" id="i-platform">💻</div>
+      </div>
+
+      <div class="check-row" id="r-plugins">
+        <div class="check-num">08</div>
+        <div class="check-main">
+          <div class="check-name">Plugin Exposure</div>
+          <div class="check-desc" id="d-plugins">Awaiting scan...</div>
+        </div>
+        <div class="check-badge" id="b-plugins">—</div>
+        <div class="check-icon-right" id="i-plugins">🔌</div>
+      </div>
+
+      <div class="check-row" id="r-screen">
+        <div class="check-num">09</div>
+        <div class="check-main">
+          <div class="check-name">Fingerprint Surface</div>
+          <div class="check-desc" id="d-screen">Awaiting scan...</div>
+        </div>
+        <div class="check-badge" id="b-screen">—</div>
+        <div class="check-icon-right" id="i-screen">📺</div>
+      </div>
+
+      <div class="check-row" id="r-js">
+        <div class="check-num">10</div>
+        <div class="check-main">
+          <div class="check-name">JS Execution Context</div>
+          <div class="check-desc" id="d-js">Awaiting scan...</div>
+        </div>
+        <div class="check-badge" id="b-js">—</div>
+        <div class="check-icon-right" id="i-js">⚙</div>
+      </div>
+
+      <div class="check-row" id="r-canvas">
+        <div class="check-num">11</div>
+        <div class="check-main">
+          <div class="check-name">HTML5 Canvas</div>
+          <div class="check-desc" id="d-canvas">Awaiting scan...</div>
+        </div>
+        <div class="check-badge" id="b-canvas">—</div>
+        <div class="check-icon-right" id="i-canvas">🎨</div>
+      </div>
+
+      <div class="check-row" id="r-adblock">
+        <div class="check-num">12</div>
+        <div class="check-main">
+          <div class="check-name">Tracker Shield</div>
+          <div class="check-desc" id="d-adblock">Awaiting scan...</div>
+        </div>
+        <div class="check-badge" id="b-adblock">—</div>
+        <div class="check-icon-right" id="i-adblock">🛡️</div>
+      </div>
+
+      <div class="check-row" id="r-hardware">
+        <div class="check-num">13</div>
+        <div class="check-main">
+          <div class="check-name">Hardware Sensors</div>
+          <div class="check-desc" id="d-hardware">Awaiting scan...</div>
+        </div>
+        <div class="check-badge" id="b-hardware">—</div>
+        <div class="check-icon-right" id="i-hardware">⚙️</div>
+      </div>
+
+      <div class="check-row" id="r-ports">
+        <div class="check-num">14</div>
+        <div class="check-main">
+          <div class="check-name">Local Network Ports</div>
+          <div class="check-desc" id="d-ports">Awaiting scan...</div>
+        </div>
+        <div class="check-badge" id="b-ports">—</div>
+        <div class="check-icon-right" id="i-ports">🔌</div>
+      </div>
+
+      <div class="check-row" id="r-audio">
+        <div class="check-num">15</div>
+        <div class="check-main">
+          <div class="check-name">Audio Fingerprint</div>
+          <div class="check-desc" id="d-audio">Awaiting scan...</div>
+        </div>
+        <div class="check-badge" id="b-audio">—</div>
+        <div class="check-icon-right" id="i-audio">🔊</div>
+      </div>
+
+      <div class="check-row" id="r-ip">
+        <div class="check-num">16</div>
+        <div class="check-main">
+          <div class="check-name">IP & Geo-Leak</div>
+          <div class="check-desc" id="d-ip">Awaiting scan...</div>
+        </div>
+        <div class="check-badge" id="b-ip">—</div>
+        <div class="check-icon-right" id="i-ip">🌎</div>
+      </div>
+
+    </div>
+
+    <!-- RECOMMENDATIONS -->
+    <div class="recs-panel" id="recsPanel">
+      <div class="recs-header">
+        <div class="recs-title">// Recommendations</div>
+        <div class="recs-count" id="recsCount"></div>
+      </div>
+      <div id="recsList"></div>
+    </div>
+
+    <!-- TERMINAL OVERLAY -->
+    <div class="terminal-overlay" id="termOverlay">
+      <div class="terminal-box">
+        <div class="terminal-titlebar">
+          <div class="t-dot r"></div>
+          <div class="t-dot y"></div>
+          <div class="t-dot g"></div>
+          <span class="terminal-title">devshield — security audit</span>
+        </div>
+        <div class="terminal-body" id="termBody"></div>
+        <div class="t-progress-wrap">
+          <div class="t-progress-track">
+            <div class="t-progress-fill" id="termFill"></div>
+          </div>
+          <div class="t-progress-pct" id="termPct">0%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer>
+      <div class="footer-left">DevShield © 2026</div>
+      <div class="footer-right">
+        <div class="footer-pill">Local Only</div>
+        <div class="footer-pill">No Tracking</div>
+        <div class="footer-pill">Open Source</div>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- CUTE VIRUS PET -->
+  <div class="cyber-pet" id="cyberPet">
+    <!-- A cute little spider/bug virus icon -->
+    <svg viewBox="0 0 24 24">
+      <!-- Body -->
+      <path d="M12 4 C8 4, 5 8, 5 12 C5 16, 8 20, 12 20 C16 20, 19 16, 19 12 C19 8, 16 4, 12 4 Z" />
+      <!-- Cute Eyes -->
+      <circle cx="9" cy="11" r="1.5" fill="var(--cyan)" />
+      <circle cx="15" cy="11" r="1.5" fill="var(--cyan)" />
+      <!-- Smile -->
+      <path d="M10 15 Q12 17 14 15" stroke-linecap="round" />
+      <!-- Legs Left -->
+      <path d="M6 9 L2 7" />
+      <path d="M5 12 L1 12" />
+      <path d="M6 15 L2 17" />
+      <!-- Legs Right -->
+      <path d="M18 9 L22 7" />
+      <path d="M19 12 L23 12" />
+      <path d="M18 15 L22 17" />
+      <!-- Antennae -->
+      <path d="M10 4 L8 1" />
+      <path d="M14 4 L16 1" />
+    </svg>
+  </div>
+
+  <script>
+    // ── INTRO ANIMATION ──
+    (async function () {
+      const splash = document.getElementById('intro-splash');
+      const devEl = document.querySelector('.typed-dev');
+      const shieldEl = document.querySelector('.typed-shield');
+      const cursor = document.getElementById('introCursor');
+      const sub = document.getElementById('introSub');
+      const loader = document.getElementById('introLoader');
+      const fill = document.getElementById('introFill');
+      const status = document.getElementById('introStatus');
+      const pct = document.getElementById('introPct');
+
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+
+      // Type a string into an element, char by char
+      async function typeInto(el, text, speed) {
+        for (let i = 0; i <= text.length; i++) {
+          el.textContent = text.slice(0, i);
+          await wait(speed);
+        }
+      }
+
+      await wait(300);
+
+      // Type Dev first
+      await typeInto(devEl, 'Dev', 90);
+      await wait(120);
+      // Then Shield in cyan
+      await typeInto(shieldEl, 'Shield', 90);
+      await wait(200);
+
+      // Hide cursor, show sub
+      cursor.style.display = 'none';
+      sub.classList.add('show');
+      await wait(300);
+
+      // Show loader
+      loader.classList.add('show');
+      await wait(200);
+
+      // Progress bar with status messages
+      const steps = [
+        { to: 15, msg: 'Loading security modules...' },
+        { to: 32, msg: 'Initializing threat engine...' },
+        { to: 50, msg: 'Mounting audit framework...' },
+        { to: 68, msg: 'Configuring scan vectors...' },
+        { to: 82, msg: 'Verifying integrity...' },
+        { to: 94, msg: 'Preparing interface...' },
+        { to: 100, msg: 'Ready.' },
+      ];
+
+      let current = 0;
+      for (const step of steps) {
+        status.textContent = step.msg;
+        while (current < step.to) {
+          current++;
+          fill.style.width = current + '%';
+          pct.textContent = current + '%';
+          await wait(28);
+        }
+        await wait(180);
+      }
+
+      await wait(400);
+
+      // Dismiss splash
+      splash.classList.add('hide');
+      setTimeout(() => splash.remove(), 900);
+    })();
+
+    const IDS = ['https', 'browser', 'cookies', 'dnt', 'storage', 'webrtc', 'platform', 'plugins', 'screen', 'js', 'canvas', 'adblock', 'hardware', 'ports', 'audio', 'ip'];
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    let recs = [];
+    let termLines = 0;
+
+    /* --- VIRUS PET LOGIC --- */
+    const pet = document.getElementById('cyberPet');
+    let mouseX = window.innerWidth / 2;
+    let mouseY = window.innerHeight / 2;
+    let petX = window.innerWidth / 2;
+    let petY = window.innerHeight / 2;
+    let isIntro = true;
+
+    // Wait for the splash screen to finish
+    setTimeout(() => { isIntro = false; }, 4000);
+
+    document.addEventListener('mousemove', (e) => {
+      mouseX = e.clientX;
+      mouseY = e.clientY;
+    });
+
+    function renderPet() {
+      if (!isIntro) {
+        // Smooth follow logic (easing)
+        // Adjust the multiplier (0.05) to make it faster or slower
+        petX += (mouseX - petX) * 0.08;
+        petY += (mouseY - petY) * 0.08;
+
+        // Calculate rotation based on movement direction
+        const dx = mouseX - petX;
+        const dy = mouseY - petY;
+        let angle = Math.atan2(dy, dx) * 180 / Math.PI;
+
+        // Offset by 90 deg because the SVG faces 'up' natively
+        pet.style.transform = `translate(${petX}px, ${petY}px) rotate(${angle + 90}deg)`;
+      }
+      requestAnimationFrame(renderPet);
+    }
+    renderPet();
+
+    /* ── TERMINAL HELPERS ── */
+    function tLog(promptCls, promptTxt, textCls, textTxt) {
+      const body = document.getElementById('termBody');
+      const line = document.createElement('div');
+      line.className = 't-line';
+      line.style.animationDelay = '0ms';
+      line.innerHTML = `<span class="${promptCls}">${promptTxt}</span><span class="${textCls}">${textTxt}</span>`;
+      body.appendChild(line);
+      termLines++;
+      // auto-scroll
+      body.scrollTop = body.scrollHeight;
+      // keep max 18 lines visible
+      while (body.children.length > 18) body.removeChild(body.firstChild);
+    }
+
+    function tClear() {
+      document.getElementById('termBody').innerHTML = '';
+      termLines = 0;
+    }
+
+    function tProgress(pct) {
+      document.getElementById('termFill').style.width = pct + '%';
+      document.getElementById('termPct').textContent = pct + '%';
+    }
+
+    async function tSpin(id, label, ms) {
+      // Show spinning dots in terminal while doing a check
+      const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+      let f = 0;
+      const body = document.getElementById('termBody');
+      const line = document.createElement('div');
+      line.className = 't-line';
+      line.innerHTML = `<span class="t-prompt">${frames[0]}</span><span class="t-muted"> ${label}...</span>`;
+      body.appendChild(line);
+      body.scrollTop = body.scrollHeight;
+
+      scanRow(id);
+      const interval = setInterval(() => {
+        f = (f + 1) % frames.length;
+        line.querySelector('.t-prompt').textContent = frames[f];
+      }, 80);
+
+      await sleep(ms);
+      clearInterval(interval);
+      line.remove();
+    }
+
+    /* ── ROW HELPERS ── */
+    function applyRow(id, status, desc, badge) {
+      const row = document.getElementById('r-' + id);
+      row.classList.remove('scanning', 'pass', 'warn', 'fail', 'info');
+      row.classList.add('active', status);
+      document.getElementById('d-' + id).textContent = desc;
+      document.getElementById('b-' + id).textContent = badge;
+    }
+
+    function scanRow(id) {
+      const row = document.getElementById('r-' + id);
+      row.classList.add('active', 'scanning');
+      document.getElementById('d-' + id).textContent = 'Running check...';
+      document.getElementById('b-' + id).textContent = '···';
+    }
+
+    /* ── AUDIT ENGINE ── */
+    async function runAudit() {
+      recs = [];
+      const ua = navigator.userAgent;
+      const TOTAL = 10;
+
+      tClear();
+      tLog('t-dim', '$', 't-muted', ' devshield --full-audit --verbose');
+      await sleep(400);
+      tLog('t-dim', '#', 't-muted', ' Initializing security modules...');
+      await sleep(600);
+      tLog('t-dim', '#', 't-muted', ' Loading threat signatures...');
+      await sleep(500);
+      tLog('t-cyan', '→', 't-text', ' Starting 10-point audit sequence');
+      await sleep(400);
+      tProgress(0);
+
+      // 1. HTTPS
+      await tSpin('https', 'Probing connection encryption', 1200);
+      const isHttps = location.protocol === 'https:' || location.hostname === 'localhost';
+      if (isHttps) {
+        applyRow('https', 'pass', 'TLS encrypted connection. Transit data is protected.', 'SECURE');
+        tLog('t-ok', '[PASS]', 't-text', ' HTTPS · TLS encryption active');
+      } else {
+        applyRow('https', 'fail', 'Unencrypted HTTP. All data is exposed in transit.', 'EXPOSED');
+        tLog('t-fail', '[FAIL]', 't-text', ' HTTPS · Connection unencrypted — HIGH RISK');
+        recs.push('Switch to HTTPS-only sites. Look for 🔒 in the address bar before entering any data.');
+      }
+      tProgress(10); await sleep(300);
+
+      // 2. Browser
+      await tSpin('browser', 'Identifying browser agent', 900);
+      let bn = 'Unknown';
+      if (ua.includes('Firefox')) bn = 'Firefox';
+      else if (ua.includes('Edg')) bn = 'Edge';
+      else if (ua.includes('Chrome')) bn = 'Chrome';
+      else if (ua.includes('Safari')) bn = 'Safari';
+      else if (ua.includes('Opera')) bn = 'Opera';
+      applyRow('browser', 'info', `${bn} detected — keep it updated for latest security patches.`, 'DETECTED');
+      tLog('t-prompt', '[INFO]', 't-text', ` Browser · ${bn} agent detected`);
+      tProgress(20); await sleep(300);
+
+      // 3. Cookies
+      await tSpin('cookies', 'Auditing cookie policy', 1100);
+      if (navigator.cookieEnabled) {
+        applyRow('cookies', 'warn', 'Cookies enabled. Use private mode for sensitive sessions.', 'ENABLED');
+        tLog('t-warn', '[WARN]', 't-text', ' Cookies · Enabled — track clearing advised');
+        recs.push('Clear cookies regularly. Use incognito/private mode for banking and sensitive browsing.');
+      } else {
+        applyRow('cookies', 'pass', 'Cookies disabled. Reduced tracking surface.', 'BLOCKED');
+        tLog('t-ok', '[PASS]', 't-text', ' Cookies · Disabled — reduced tracking surface');
+      }
+      tProgress(30); await sleep(300);
+
+      // 4. DNT
+      await tSpin('dnt', 'Checking tracking protection flags', 1000);
+      const dnt = navigator.doNotTrack;
+      if (dnt === '1' || dnt === 'yes') {
+        applyRow('dnt', 'pass', 'Do Not Track is active. Sites are signalled to not track you.', 'ACTIVE');
+        tLog('t-ok', '[PASS]', 't-text', ' DNT · Do Not Track header is set');
+      } else {
+        applyRow('dnt', 'warn', 'Do Not Track is off. Sites may profile your activity.', 'INACTIVE');
+        tLog('t-warn', '[WARN]', 't-text', ' DNT · Not set — activity may be profiled');
+        recs.push('Enable "Do Not Track" in your browser privacy settings.');
+      }
+      tProgress(40); await sleep(300);
+
+      // 5. Storage
+      await tSpin('storage', 'Scanning local storage entries', 1300);
+      try {
+        localStorage.setItem('__ds__', '1'); localStorage.removeItem('__ds__');
+        const n = localStorage.length;
+        if (n > 10) {
+          applyRow('storage', 'warn', `${n} items in local storage. Stale data may pose a risk.`, `${n} ITEMS`);
+          tLog('t-warn', '[WARN]', 't-text', ` Storage · ${n} entries found — review advised`);
+          recs.push(`${n} items in local storage — clear old data via Settings → Privacy → Clear Browsing Data.`);
+        } else {
+          applyRow('storage', 'pass', `${n} item${n !== 1 ? 's' : ''} in storage. Within normal bounds.`, 'CLEAN');
+          tLog('t-ok', '[PASS]', 't-text', ` Storage · ${n} entries — within safe bounds`);
+        }
+      } catch {
+        applyRow('storage', 'info', 'Local storage is restricted or disabled.', 'LOCKED');
+        tLog('t-prompt', '[INFO]', 't-text', ' Storage · Access restricted / sandboxed');
+      }
+      tProgress(50); await sleep(300);
+
+      // 6. WebRTC
+      await tSpin('webrtc', 'Testing WebRTC IP leak vectors', 1500);
+      if (typeof RTCPeerConnection !== 'undefined') {
+        applyRow('webrtc', 'warn', 'WebRTC active — your real IP may leak even behind a VPN.', 'LEAKABLE');
+        tLog('t-warn', '[WARN]', 't-text', ' WebRTC · Active — potential IP leak vector');
+        recs.push('If using a VPN, disable WebRTC in browser settings. Firefox with uBlock Origin offers best protection.');
+      } else {
+        applyRow('webrtc', 'pass', 'WebRTC unavailable or blocked. IP leak risk is low.', 'BLOCKED');
+        tLog('t-ok', '[PASS]', 't-text', ' WebRTC · Blocked — IP leak risk is low');
+      }
+      tProgress(60); await sleep(300);
+
+      // 7. Platform
+      await tSpin('platform', 'Enumerating device platform', 900);
+      const mob = /Android|iPhone|iPad/i.test(ua);
+      const plat = navigator.platform || 'Unknown';
+      if (mob) {
+        applyRow('platform', 'info', `Mobile (${plat}). Enable screen lock, biometrics & storage encryption.`, 'MOBILE');
+        tLog('t-prompt', '[INFO]', 't-text', ` Platform · Mobile detected (${plat})`);
+        recs.push('Enable screen lock and biometric auth on your mobile. Encrypt device storage in settings.');
+      } else {
+        applyRow('platform', 'info', `Desktop (${plat}). Enable full-disk encryption (BitLocker / FileVault).`, 'DESKTOP');
+        tLog('t-prompt', '[INFO]', 't-text', ` Platform · Desktop (${plat})`);
+      }
+      tProgress(70); await sleep(300);
+
+      // 8. Plugins
+      await tSpin('plugins', 'Enumerating browser plugins', 1100);
+      const pc = navigator.plugins ? navigator.plugins.length : 0;
+      if (pc > 6) {
+        applyRow('plugins', 'warn', `${pc} browser plugins detected. Each plugin is an attack vector.`, `${pc} FOUND`);
+        tLog('t-warn', '[WARN]', 't-text', ` Plugins · ${pc} found — attack surface elevated`);
+        recs.push(`${pc} plugins found — remove unused ones. Every plugin is a potential security risk.`);
+      } else if (pc === 0) {
+        applyRow('plugins', 'pass', 'No plugins detected. Minimal browser attack surface.', 'NONE');
+        tLog('t-ok', '[PASS]', 't-text', ' Plugins · None — minimal attack surface');
+      } else {
+        applyRow('plugins', 'pass', `${pc} plugin${pc !== 1 ? 's' : ''} — within acceptable range.`, 'OK');
+        tLog('t-ok', '[PASS]', 't-text', ` Plugins · ${pc} found — acceptable`);
+      }
+      tProgress(80); await sleep(300);
+
+      // 9. Screen fingerprint
+      await tSpin('screen', 'Measuring fingerprint exposure', 1000);
+      applyRow('screen', 'info', `${screen.width}×${screen.height} @ ${screen.colorDepth}bpp — identifiable fingerprint.`, 'VISIBLE');
+      tLog('t-prompt', '[INFO]', 't-text', ` Screen · ${screen.width}×${screen.height} @ ${screen.colorDepth}bpp`);
+      recs.push('Use Brave Browser or the Privacy Badger extension to reduce fingerprinting exposure.');
+      tProgress(90); await sleep(300);
+
+      // 10. JS context
+      await tSpin('js', 'Inspecting JS execution context', 900);
+      applyRow('js', 'pass', 'JavaScript execution context is clean. No anomalies detected.', 'NORMAL');
+      tLog('t-ok', '[PASS]', 't-text', ' JS Context · Clean execution environment');
+      tProgress(65); await sleep(300);
+
+      // 11. Canvas Fingerprinting
+      await tSpin('canvas', 'Generating Canvas fingerprint anomaly', 1200);
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.textBaseline = 'top';
+        ctx.font = "14px 'Arial'";
+        ctx.textBaseline = "alphabetic";
+        ctx.fillStyle = "#f60";
+        ctx.fillRect(125, 1, 62, 20);
+        ctx.fillStyle = "#069";
+        ctx.fillText("DevShield", 2, 15);
+        ctx.fillStyle = "rgba(102, 204, 0, 0.7)";
+        ctx.fillText("DevShield", 4, 17);
+        const dataUrl = canvas.toDataURL();
+        if (dataUrl && dataUrl.length > 50) {
+          applyRow('canvas', 'warn', 'Your browser draws distinct visual elements. You can be tracked via Canvas Fingerprinting.', 'UNIQUE');
+          tLog('t-warn', '[WARN]', 't-text', ' Canvas · Fingerprint hash generated. Tracker risk.');
+          recs.push('Use Brave Browser or CanvasBlocker extension to spoof Canvas fingerprinting.');
+        } else {
+          applyRow('canvas', 'pass', 'Canvas fingerprinting blocked or standardized.', 'BLOCKED');
+          tLog('t-ok', '[PASS]', 't-text', ' Canvas · Standardized / Blocked');
+        }
+      } catch (e) {
+        applyRow('canvas', 'info', 'Canvas extraction failed or is restricted.', 'LOCKED');
+        tLog('t-prompt', '[INFO]', 't-text', ' Canvas · Generation failed/restricted');
+      }
+      tProgress(75); await sleep(300);
+
+      // 12. Ad-Blocker Test
+      await tSpin('adblock', 'Testing Tracker & Ad-Blocker presence', 1100);
+      let isBlocked = false;
+      try {
+        // Attempting to inject a fake ads script commonly blocked by uBlock/Brave
+        const testDiv = document.createElement('div');
+        testDiv.className = 'adsbox ad-placement doubleclick pub_300x250 pub_300x250m pub_728x90 text-ad textAd text_ad text_ads text-ad-links';
+        testDiv.style.display = 'block';
+        testDiv.style.position = 'absolute';
+        testDiv.style.top = '-9999px';
+        document.body.appendChild(testDiv);
+        await sleep(50);
+        if (testDiv.offsetHeight === 0 || window.getComputedStyle(testDiv).display === 'none') {
+          isBlocked = true;
+        }
+        testDiv.remove();
+      } catch (e) { }
+
+      if (isBlocked) {
+        applyRow('adblock', 'pass', 'Ad & Tracker Blocker detected! Most tracking scripts are blocked.', 'ACTIVE');
+        tLog('t-ok', '[PASS]', 't-text', ' Tracker Block · Active (uBlock/Brave Shields detected)');
+      } else {
+        applyRow('adblock', 'fail', 'No Ad-Blocker detected! Trackers and malicious ads can load freely.', 'EXPOSED');
+        tLog('t-fail', '[FAIL]', 't-text', ' Tracker Block · Inactive — High tracking risk');
+        recs.push('Install uBlock Origin extension immediately to block malicious ads and trackers.');
+      }
+      tProgress(85); await sleep(300);
+
+      // 13. Hardware Exposure
+      await tSpin('hardware', 'Extracting Hardware & Memory Context', 1000);
+      const cores = navigator.hardwareConcurrency || 'Unknown';
+      const ram = navigator.deviceMemory || 'Unknown';
+      applyRow('hardware', 'warn', `${cores} CPU Cores, ~${ram}GB RAM exposed to websites. Aids in advanced device fingerprinting.`, 'EXPOSED');
+      tLog('t-warn', '[WARN]', 't-text', ` Hardware · ${cores} Cores, ~${ram}GB RAM exposed`);
+      tProgress(92); await sleep(300);
+
+      // 14. Local Network Ports
+      await tSpin('ports', 'Scanning local network ports (8080, 3306)', 1500);
+      try {
+        const abortController = new AbortController();
+        setTimeout(() => abortController.abort(), 300);
+        await fetch('http://127.0.0.1:3306', { mode: 'no-cors', signal: abortController.signal });
+        applyRow('ports', 'warn', 'Local port 3306 appears open or responsive. External sites can probe your localhost!', 'PORT OPEN');
+        tLog('t-warn', '[WARN]', 't-text', ' Ports · Localhost port probing successful');
+        recs.push('Ensure local development servers (MySQL, Node) are isolated or firewalled.');
+      } catch (e) {
+        applyRow('ports', 'pass', 'Local network sweeping restricted. Localhost ports appear sealed.', 'SEALED');
+        tLog('t-ok', '[PASS]', 't-text', ' Ports · Localhost sweeping blocked or ports sealed');
+      }
+      tProgress(94); await sleep(300);
+
+      // 15. Audio Fingerprinting
+      await tSpin('audio', 'Analyzing AudioContext DSP fingerprint', 1100);
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+          const actx = new AudioContext();
+          const osc = actx.createOscillator();
+          const ana = actx.createAnalyser();
+          osc.connect(ana);
+          applyRow('audio', 'warn', 'AudioContext is active. Your audio hardware creates a unique trackable soundwave.', 'TRACKABLE');
+          tLog('t-warn', '[WARN]', 't-text', ' Audio · DSP fingerprint hash generated');
+          recs.push('Use Brave Shields or a Fingerprint spoofing extension to spoof AudioContext signals.');
+        } else {
+          applyRow('audio', 'pass', 'AudioContext is unavailable or blocked.', 'SAFE');
+          tLog('t-ok', '[PASS]', 't-text', ' Audio · Context blocked');
+        }
+      } catch (e) {
+        applyRow('audio', 'pass', 'AudioContext is unavailable or blocked.', 'SAFE');
+        tLog('t-ok', '[PASS]', 't-text', ' Audio · Context blocked');
+      }
+      tProgress(97); await sleep(300);
+
+      // 16. IP & Geo-Location (Backend Call)
+      await tSpin('ip', 'Reaching out to backend for IP & Geo extraction', 1400);
+      try {
+        const res = await fetch('/api/ip-info');
+        const data = await res.json();
+        if (data.ip) {
+          const proxyStr = data.isProxy ? " (Proxy/VPN Detected)" : "";
+          applyRow('ip', 'warn', `Real IP Endpoint Exposed: ${data.ip} — ${data.location} via ${data.isp}${proxyStr}`, 'LEAKED');
+          tLog('t-warn', '[WARN]', 't-text', ` Network · IP ${data.ip} mapped to ${data.location}`);
+          if (!data.isProxy) recs.push('Your real IP address and ISP are exposed. Consider using a privacy VPN (Mullvad, Proton).');
+        } else {
+          applyRow('ip', 'info', 'Could not determine routing path.', 'UNKNOWN');
+          tLog('t-prompt', '[INFO]', 't-text', ' Network · Routing path obfuscated');
+        }
+      } catch (e) {
+        applyRow('ip', 'pass', 'Backend unreachable. External IP extraction failed.', 'BLOCKED');
+        tLog('t-ok', '[PASS]', 't-text', ' Network · API restricted');
+      }
+
+      tProgress(100); await sleep(300);
+
+      await sleep(400);
+      tLog('t-dim', '', 't-muted', '──────────────────────────────────────────');
+      tLog('t-cyan', '✓', 't-text', ' Audit complete. Generating report...');
+      await sleep(700);
+
+      document.getElementById('scanStatus').textContent = '> Audit complete — report ready.';
+    }
+
+    function computeScore() {
+      let s = 0, t = 0;
+      IDS.forEach(id => {
+        const r = document.getElementById('r-' + id);
+        if (!r) return;
+        t += 10;
+        if (r.classList.contains('pass')) s += 10;
+        else if (r.classList.contains('info')) s += 7;
+        else if (r.classList.contains('warn')) s += 4;
+      });
+      return Math.round((s / t) * 100) || 0;
+    }
+
+    function animateGauge(target) {
+      const fill = document.getElementById('gaugeFill');
+      const val = document.getElementById('gaugeVal');
+      const grade = document.getElementById('gaugeGrade');
+      let col, g;
+      if (target >= 80) { col = '#34d399'; g = 'EXCELLENT'; }
+      else if (target >= 60) { col = '#34d399'; g = 'GOOD'; }
+      else if (target >= 40) { col = '#fbbf24'; g = 'FAIR'; }
+      else { col = '#f87171'; g = 'AT RISK'; }
+      fill.style.stroke = col; val.style.color = col;
+      grade.textContent = g; grade.style.color = col;
+      const t0 = performance.now(), dur = 2000;
+      (function step(now) {
+        const p = Math.min((now - t0) / dur, 1);
+        const e = 1 - Math.pow(1 - p, 4);
+        const v = Math.round(e * target);
+        val.textContent = v;
+        fill.style.strokeDashoffset = 408 - (v / 100) * 408;
+        if (p < 1) requestAnimationFrame(step);
+      })(t0);
+    }
+
+    function showRecs() {
+      const panel = document.getElementById('recsPanel');
+      const list = document.getElementById('recsList');
+      const count = document.getElementById('recsCount');
+      list.innerHTML = recs.length === 0
+        ? '<div class="rec-item"><div class="rec-num">✓</div><div>No critical issues found. Keep your software updated and stay vigilant.</div></div>'
+        : recs.map((r, i) => `<div class="rec-item"><div class="rec-num">[${String(i + 1).padStart(2, '0')}]</div><div>${r}</div></div>`).join('');
+      count.textContent = recs.length === 0 ? 'All clear' : `${recs.length} item${recs.length !== 1 ? 's' : ''} to address`;
+      panel.style.display = 'block';
+    }
+
+    async function startScan() {
+      const btn = document.getElementById('btnScan');
+      const label = document.getElementById('btnLabel');
+      const pbar = document.getElementById('progressBar');
+      const overlay = document.getElementById('termOverlay');
+
+      btn.disabled = true; label.textContent = 'Scanning...';
+      pbar.classList.add('active');
+      document.getElementById('recsPanel').style.display = 'none';
+      document.getElementById('gaugeVal').textContent = '—';
+      document.getElementById('gaugeGrade').textContent = 'RUNNING';
+      document.getElementById('gaugeFill').style.strokeDashoffset = 408;
+
+      IDS.forEach(id => {
+        document.getElementById('r-' + id).className = 'check-row';
+        document.getElementById('d-' + id).textContent = 'Awaiting scan...';
+        document.getElementById('b-' + id).textContent = '—';
+      });
+
+      // Show terminal overlay
+      overlay.classList.add('show');
+
+      await runAudit();
+
+      // Dismiss overlay after short pause
+      await sleep(900);
+      overlay.classList.remove('show');
+      await sleep(400);
+
+      const score = computeScore();
+      animateGauge(score);
+      showRecs();
+
+      try {
+        const details = IDS.map(id => ({
+          id,
+          status: document.getElementById('r-' + id).classList.contains('pass') ? 'pass' :
+            document.getElementById('r-' + id).classList.contains('warn') ? 'warn' :
+              document.getElementById('r-' + id).classList.contains('fail') ? 'fail' : 'info',
+          desc: document.getElementById('d-' + id).textContent
+        }));
+        await fetch('/api/audit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ score, details })
+        });
+      } catch (e) {
+        console.error('Failed to save audit backend API', e);
+      }
+
+      pbar.classList.remove('active');
+      btn.disabled = false; label.textContent = 'Re-run Audit';
+    }
+  </script>
+</body>
+
+</html>
