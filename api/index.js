@@ -9,13 +9,19 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, '../public')));
 
 // Simple file-based database for audit results
-const DB_FILE = path.join(__dirname, 'results.json');
+const DB_FILE = process.env.VERCEL || process.env.NODE_ENV === 'production'
+  ? '/tmp/results.json'
+  : path.join(__dirname, '../results.json');
 
-if (!fs.existsSync(DB_FILE)) {
-  fs.writeFileSync(DB_FILE, JSON.stringify([]));
+try {
+  if (!fs.existsSync(DB_FILE)) {
+    fs.writeFileSync(DB_FILE, JSON.stringify([]));
+  }
+} catch (e) {
+  console.log('Skipping local file init due to read-only constraints:', e.message);
 }
 
 // Endpoint to receive scan results
@@ -23,7 +29,15 @@ app.post('/api/audit', (req, res) => {
   try {
     const data = req.body;
 
-    const results = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+    let results = [];
+    if (fs.existsSync(DB_FILE)) {
+      try {
+        const fileContent = fs.readFileSync(DB_FILE, 'utf8');
+        if (fileContent) results = JSON.parse(fileContent);
+      } catch (e) {
+        console.error('Error parsing DB_FILE:', e);
+      }
+    }
 
     const record = {
       id: Date.now(),
@@ -45,7 +59,11 @@ app.post('/api/audit', (req, res) => {
 // Endpoint to get all results
 app.get('/api/results', (req, res) => {
   try {
-    const results = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+    let results = [];
+    if (fs.existsSync(DB_FILE)) {
+      const fileContent = fs.readFileSync(DB_FILE, 'utf8');
+      if (fileContent) results = JSON.parse(fileContent);
+    }
     res.json(results);
   } catch (err) {
     res.status(500).json({ error: 'Failed to read results' });
