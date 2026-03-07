@@ -9,12 +9,12 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '../public')));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Simple file-based database for audit results
 const DB_FILE = process.env.VERCEL || process.env.NODE_ENV === 'production'
   ? '/tmp/results.json'
-  : path.join(__dirname, '../results.json');
+  : path.join(__dirname, 'results.json');
 
 try {
   if (!fs.existsSync(DB_FILE)) {
